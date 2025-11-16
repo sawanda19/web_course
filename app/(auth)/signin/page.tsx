@@ -12,6 +12,7 @@ import Button from '@/components/ui/Button';
 export default function SignInPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -33,26 +34,20 @@ export default function SignInPage() {
     setIsLoading(true);
     setError('');
 
-    try {
-      const result = await signIn('credentials', {
-        redirect: false,
-        email: formData.email,
-        password: formData.password,
-      });
+    const result = await signIn('credentials', {
+      redirect: false,
+      email: formData.email,
+      password: formData.password,
+    });
 
-      if (result?.error) {
-        setError(result.error);
-        return;
-      }
-
-      // Redirect based on user role (we'll implement this later)
-      router.push('/dashboard');
-      router.refresh();
-    } catch (error) {
-      setError('Something went wrong. Please try again.');
-    } finally {
+    if (result?.error) {
+      setError(result.error);
       setIsLoading(false);
+      return;
     }
+
+    router.push('/dashboard');
+    setIsLoading(false);
   };
 
   return (
