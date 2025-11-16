@@ -1,15 +1,16 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import dbConnect from '@/lib/db';
 import Enrollment from '@/models/Enrollment';
 
-// PUT /api/enrollments/[id] - Update lesson progress
 export async function PUT(
-  req: Request,
-  { params }: { params: { id: string } }
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params;
+
     const session = await getServerSession(authOptions);
 
     if (!session) {
@@ -20,7 +21,7 @@ export async function PUT(
 
     const { lessonId, completed } = await req.json();
 
-    const enrollment = await Enrollment.findById(params.id);
+    const enrollment = await Enrollment.findById(id);
 
     if (!enrollment) {
       return NextResponse.json(
@@ -29,7 +30,6 @@ export async function PUT(
       );
     }
 
-    // Check if user owns this enrollment
     if (enrollment.student.toString() !== session.user.id) {
       return NextResponse.json(
         { error: 'You do not have permission to update this enrollment' },
@@ -37,9 +37,7 @@ export async function PUT(
       );
     }
 
-    // Update progress
     const progressIndex = enrollment.progress.findIndex(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (p: any) => p.lessonId === lessonId
     );
 
@@ -51,29 +49,27 @@ export async function PUT(
     }
 
     enrollment.progress[progressIndex].completed = completed;
+
     if (completed) {
       enrollment.progress[progressIndex].completedAt = new Date();
     } else {
       enrollment.progress[progressIndex].completedAt = undefined;
     }
 
-    // Recalculate completion stats
     const completedCount = enrollment.progress.filter(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (p: any) => p.completed
     ).length;
+
     enrollment.completedLessons = completedCount;
     enrollment.completionPercentage =
       enrollment.totalLessons > 0
         ? Math.round((completedCount / enrollment.totalLessons) * 100)
         : 0;
 
-    // Mark as completed if all lessons done
-    if (completedCount === enrollment.totalLessons && enrollment.totalLessons > 0) {
-      enrollment.completedAt = new Date();
-    } else {
-      enrollment.completedAt = undefined;
-    }
+    enrollment.completedAt =
+      completedCount === enrollment.totalLessons && enrollment.totalLessons > 0
+        ? new Date()
+        : undefined;
 
     await enrollment.save();
 
