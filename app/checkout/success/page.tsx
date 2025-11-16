@@ -5,6 +5,10 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Button from '@/components/ui/Button';
 
+// Force dynamic rendering - disable prerendering
+export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
+
 export default function CheckoutSuccessPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
