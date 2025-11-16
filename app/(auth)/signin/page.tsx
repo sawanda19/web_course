@@ -6,14 +6,12 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
 
-export default function SignUpPage() {
+export default function SignInPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const [formData, setFormData] = useState({
-    username: '',
     email: '',
     password: '',
-    confirmPassword: '',
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -27,54 +25,23 @@ export default function SignUpPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
-      return;
-    }
-
     setIsLoading(true);
 
     try {
-      const res = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: formData.username,
-          email: formData.email,
-          password: formData.password,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || 'Something went wrong');
-        setIsLoading(false);
-        return;
-      }
-
-      // Auto sign in after successful registration
       const result = await signIn('credentials', {
         redirect: false,
         email: formData.email,
         password: formData.password,
       });
 
-      if (result?.ok) {
+      if (result?.error) {
+        setError('Invalid email or password');
+      } else if (result?.ok) {
         router.push('/dashboard');
-      } else {
-        router.push('/signin');
       }
     } catch (err) {
       setError('An error occurred. Please try again.');
+    } finally {
       setIsLoading(false);
     }
   };
@@ -103,12 +70,12 @@ export default function SignUpPage() {
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create your account
+            Sign in to your account
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Or{' '}
-            <Link href="/signin" className="font-medium text-blue-600 hover:text-blue-500">
-              sign in to existing account
+            <Link href="/signup" className="font-medium text-blue-600 hover:text-blue-500">
+              create a new account
             </Link>
           </p>
         </div>
@@ -120,22 +87,7 @@ export default function SignUpPage() {
             </div>
           )}
 
-          <div className="rounded-md shadow-sm space-y-4">
-            <div>
-              <label htmlFor="username" className="sr-only">
-                Username
-              </label>
-              <input
-                id="username"
-                name="username"
-                type="text"
-                required
-                value={formData.username}
-                onChange={handleChange}
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Username"
-              />
-            </div>
+          <div className="rounded-md shadow-sm -space-y-px">
             <div>
               <label htmlFor="email" className="sr-only">
                 Email address
@@ -148,7 +100,7 @@ export default function SignUpPage() {
                 required
                 value={formData.email}
                 onChange={handleChange}
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                 placeholder="Email address"
               />
             </div>
@@ -160,29 +112,33 @@ export default function SignUpPage() {
                 id="password"
                 name="password"
                 type="password"
-                autoComplete="new-password"
+                autoComplete="current-password"
                 required
                 value={formData.password}
                 onChange={handleChange}
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Password (min. 6 characters)"
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                placeholder="Password"
               />
             </div>
-            <div>
-              <label htmlFor="confirmPassword" className="sr-only">
-                Confirm Password
-              </label>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
               <input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                autoComplete="new-password"
-                required
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Confirm password"
+                id="remember-me"
+                name="remember-me"
+                type="checkbox"
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
               />
+              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
+                Remember me
+              </label>
+            </div>
+
+            <div className="text-sm">
+              <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
+                Forgot your password?
+              </a>
             </div>
           </div>
 
@@ -194,14 +150,39 @@ export default function SignUpPage() {
               isLoading={isLoading}
               className="w-full"
             >
-              Sign up
+              Sign in
             </Button>
           </div>
-
-          <div className="text-xs text-center text-gray-500">
-            By signing up, you agree to our Terms of Service and Privacy Policy
-          </div>
         </form>
+
+        <div className="mt-6">
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-gray-50 text-gray-500">Demo Accounts</span>
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-2">
+            <div className="text-xs text-gray-600 bg-blue-50 p-3 rounded">
+              <p className="font-semibold mb-1">Admin:</p>
+              <p>Email: admin@test.com</p>
+              <p>Password: admin123</p>
+            </div>
+            <div className="text-xs text-gray-600 bg-green-50 p-3 rounded">
+              <p className="font-semibold mb-1">Instructor:</p>
+              <p>Email: instructor@test.com</p>
+              <p>Password: instructor123</p>
+            </div>
+            <div className="text-xs text-gray-600 bg-purple-50 p-3 rounded">
+              <p className="font-semibold mb-1">Student:</p>
+              <p>Email: student@test.com</p>
+              <p>Password: student123</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
