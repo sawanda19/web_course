@@ -1,70 +1,82 @@
-import { NextResponse } from 'next/server';
+import NextAuth, { NextAuthOptions } from 'next-auth';
+import CredentialsProvider from 'next-auth/providers/credentials';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
 
-export async function POST(req: Request) {
-  try {
-    await dbConnect();
-
-    const { username, email, password, role } = await req.json();
-
-    // Validation
-    if (!username || !email || !password) {
-      return NextResponse.json(
-        { error: 'Please provide all required fields' },
-        { status: 400 }
-      );
-    }
-
-    // Check if user already exists
-    const existingUser = await User.findOne({
-      $or: [{ email }, { username }],
-    });
-
-    if (existingUser) {
-      return NextResponse.json(
-        { error: 'User with this email or username already exists' },
-        { status: 400 }
-      );
-    }
-
-    // Create new user
-    const user = await User.create({
-      username,
-      email,
-      password,
-      role: role || 'student',
-    });
-
-    return NextResponse.json(
-      {
-        message: 'User registered successfully',
-        user: {
-          id: user._id,
-          username: user.username,
-          email: user.email,
-          role: user.role,
-        },
+export const authOptions: NextAuthOptions = {
+  providers: [
+    CredentialsProvider({
+      name: 'Credentials',
+      credentials: {
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' },
       },
-      { status: 201 }
-    );
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    console.error('Registration error:', error);
-    
-    // Handle mongoose validation errors
-    if (error.name === 'ValidationError') {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const messages = Object.values(error.errors).map((err: any) => err.message);
-      return NextResponse.json(
-        { error: messages.join(', ') },
-        { status: 400 }
-      );
-    }
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error('Please enter email and password');
+        }
 
-    return NextResponse.json(
-      { error: 'Something went wrong. Please try again.' },
-      { status: 500 }
-    );
-  }
-}
+        await dbConnect();
+
+        // Find user and explicitly select password field
+        const user = await User.findOne({ email: credentials.email }).select('+password');
+
+        if (!user) {
+          throw new Error('Invalid email or password');
+        }
+
+        // Check password
+        const isPasswordValid = await user.comparePassword(credentials.password);
+
+        if (!isPasswordValid) {
+          throw new Error('Invalid email or password');
+        }
+
+        return {
+          id: user._id.toString(),
+          email: user.email,
+          name: user.username,
+          role: user.role,
+        };
+      },
+    }),
+  ],
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        // 'user' can be an AdapterUser which doesn't have 'role', so narrow/cast before assigning
+        const u = user as { id?: string | number; role?: string } | Record<string, unknown>;
+        if (u.id !== undefined) {
+          token.id = typeof u.id === 'string' ? u.id : String(u.id);
+        }
+        if (u.role !== undefined) {
+          const roleStr = String(u.role);
+          if (['student', 'instructor', 'admin'].includes(roleStr)) {
+            token.role = roleStr as 'student' | 'instructor' | 'admin';
+          }
+        }
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        const user = session.user as { id?: string; role?: string } & Record<string, unknown>;
+        user.id = token.id as string;
+        user.role = token.role as string;
+      }
+      return session;
+    },
+  },
+  pages: {
+    signIn: '/signin',
+    error: '/signin',
+  },
+  session: {
+    strategy: 'jwt',
+  },
+  secret: process.env.NEXTAUTH_SECRET,
+};
+
+const handler = NextAuth(authOptions);
+
+export { handler as GET, handler as POST };
