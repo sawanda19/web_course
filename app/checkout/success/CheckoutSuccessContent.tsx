@@ -24,28 +24,30 @@ export default function CheckoutSuccessContent() {
     verifyPayment(sessionId);
   }, [searchParams]);
 
-  const verifyPayment = async (sessionId: string) => {
-    try {
-      const res = await fetch('/api/payments/verify-payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId }),
-      });
+const verifyPayment = async (sessionId: string) => {
+  try {
+    const res = await fetch('/api/payments/verify-payment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId }),
+    });
 
-      if (res.ok) {
-        setStatus('success');
-        setMessage('Payment successful! You are now enrolled in the course.');
-      } else {
-        const error = await res.json();
-        setStatus('error');
-        setMessage(error.error || 'Payment verification failed');
-      }
-    } catch (error) {
-      console.error('Payment verification error:', error);
+    const data = await res.json();
+    
+    // Успіх якщо 200 (навіть якщо вже enrolled)
+    if (res.ok) {
+      setStatus('success');
+      setMessage(data.message || 'Payment successful! You are now enrolled in the course.');
+    } else {
       setStatus('error');
-      setMessage('Failed to verify payment');
+      setMessage(data.error || 'Payment verification failed');
     }
-  };
+  } catch (error) {
+    console.error('Payment verification error:', error);
+    setStatus('error');
+    setMessage('Failed to verify payment');
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
