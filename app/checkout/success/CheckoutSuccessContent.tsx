@@ -26,24 +26,32 @@ export default function CheckoutSuccessContent() {
 
 const verifyPayment = async (sessionId: string) => {
   try {
+    console.log('=== VERIFYING PAYMENT ===');
+    console.log('Session ID:', sessionId);
+    
     const res = await fetch('/api/payments/verify-payment', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sessionId }),
     });
 
+    console.log('Response status:', res.status);
+    console.log('Response ok:', res.ok);
+
     const data = await res.json();
-    
-    // Успіх якщо 200 (навіть якщо вже enrolled)
+    console.log('Response data:', data);
+
     if (res.ok) {
+      console.log('✅ Payment verified successfully');
       setStatus('success');
       setMessage(data.message || 'Payment successful! You are now enrolled in the course.');
     } else {
+      console.log('❌ Payment verification failed');
       setStatus('error');
       setMessage(data.error || 'Payment verification failed');
     }
   } catch (error) {
-    console.error('Payment verification error:', error);
+    console.error('❌ Payment verification error:', error);
     setStatus('error');
     setMessage('Failed to verify payment');
   }
