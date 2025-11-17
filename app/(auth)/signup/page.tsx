@@ -31,20 +31,31 @@ export default function SignUpPage() {
     e.preventDefault();
     setError('');
 
+    console.log('=== SIGNUP FORM SUBMIT ===');
+    console.log('Form data:', {
+      username: formData.username,
+      email: formData.email,
+      passwordLength: formData.password.length,
+      confirmPasswordLength: formData.confirmPassword.length,
+    });
+
     if (formData.password !== formData.confirmPassword) {
+      console.log('❌ Passwords do not match');
       setError('Passwords do not match');
       return;
     }
 
     if (formData.password.length < 6) {
+      console.log('❌ Password too short');
       setError('Password must be at least 6 characters');
       return;
     }
 
     setIsLoading(true);
+    console.log('Sending signup request...');
 
     try {
-      const res = await fetch('/api/auth/signup', {
+      const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -56,13 +67,20 @@ export default function SignUpPage() {
         }),
       });
 
-      const data = await res.json();
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
 
-      if (!res.ok) {
+      const data = await response.json();
+      console.log('Response data:', data);
+
+      if (!response.ok) {
+        console.log('❌ Signup failed:', data.error);
         setError(data.error || 'Something went wrong');
         setIsLoading(false);
         return;
       }
+
+      console.log('✅ Signup successful, attempting auto sign in...');
 
       // Auto sign in after successful registration
       const result = await signIn('credentials', {
@@ -71,12 +89,19 @@ export default function SignUpPage() {
         password: formData.password,
       });
 
+      console.log('SignIn result:', result);
+
       if (result?.ok) {
+        console.log('✅ Auto sign in successful');
         router.push('/dashboard');
       } else {
+        console.log('⚠️ Auto sign in failed, redirecting to signin');
         router.push('/signin');
       }
-    } catch (err) {
+    } catch (err: any) {
+      console.error('❌ Signup error:', err);
+      console.error('Error message:', err.message);
+      console.error('Error stack:', err.stack);
       setError('An error occurred. Please try again.');
       setIsLoading(false);
     }
