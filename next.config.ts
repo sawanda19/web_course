@@ -1,21 +1,34 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
+  reactStrictMode: false,
   images: {
-    domains: ['images.unsplash.com', 'via.placeholder.com', 'i.ytimg.com', 'img.youtube.com'],
-    unoptimized: true, // Для Render безкоштовного плану
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'via.placeholder.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'i.ytimg.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'img.youtube.com',
+      },
+    ],
+    unoptimized: true,
   },
   experimental: {
     serverActions: {
       allowedOrigins: ['*'],
     },
   },
-  // Пропускаємо TypeScript і ESLint помилки під час build
   typescript: {
     ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
   },
 }
 
