@@ -17,6 +17,7 @@ export default function SignUpPage() {
     email: '',
     password: '',
     confirmPassword: '',
+    role: 'student',
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -64,6 +65,7 @@ export default function SignUpPage() {
           username: formData.username,
           email: formData.email,
           password: formData.password,
+          role: formData.role,
         }),
       });
 
@@ -107,7 +109,7 @@ export default function SignUpPage() {
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
@@ -212,6 +214,21 @@ export default function SignUpPage() {
                 placeholder="Confirm password"
               />
             </div>
+            <div>
+  <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2 text-left">
+    I want to register as:
+  </label>
+  <select
+    id="role"
+    name="role"
+    value={formData.role}
+    onChange={handleChange}
+    className="appearance-none relative block w-full px-3 py-2 border border-gray-300 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+  >
+    <option value="student">Student - Learn from courses</option>
+    <option value="instructor">Instructor - Create and teach courses</option>
+  </select>
+</div>
           </div>
 
           <div>
